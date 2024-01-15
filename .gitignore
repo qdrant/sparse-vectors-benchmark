@@ -1,0 +1,6 @@
+.idea
+*.iml
+.python-version
+/venv
+/data
+/results
