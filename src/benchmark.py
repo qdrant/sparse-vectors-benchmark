@@ -68,6 +68,7 @@ def print_segment_info(host, collection_name):
 @click.option('--segment-number', default=8, help="Number of segments")
 @click.option('--analyze-data', default=False, help="Whether to analyze data")
 @click.option('--check-groundtruth', default=False, help="Whether to check results against ground truth")
+@click.option('--graph-y-limit', default=None, help="Y axis limit for the graph to help compare plots")
 def sparse_vector_benchmark(
         host,
         skip_creation,
@@ -77,7 +78,8 @@ def sparse_vector_benchmark(
         data_path,
         segment_number,
         analyze_data,
-        check_groundtruth):
+        check_groundtruth,
+        graph_y_limit):
     """Sparse vector benchmark tool for Qdrant."""
 
     collection_name = f"neurIPS_sparse_{dataset}_bench"
@@ -110,9 +112,14 @@ def sparse_vector_benchmark(
             values = ground[1][i]
             ground_vectors.append(SparseVector(indices=indices, values=values))
 
-    print(f"Reading {data_file_name} ...")
-    data = read_sparse_matrix(data_file_name)
-    vec_count = data.shape[0]
+    data = {}
+    vec_count = 0
+
+    if analyze_data or not skip_creation:
+        print(f"Reading {data_file_name} ...")
+        data = read_sparse_matrix(data_file_name)
+        vec_count = data.shape[0]
+
     # data analyze behind flag as it can be expensive
     if analyze_data:
         stats = compute_dataset_stats(data)
@@ -148,7 +155,7 @@ def sparse_vector_benchmark(
         client.upload_collection(
             collection_name=collection_name,
             vectors=tqdm(insert_generator(vector_name, data), total=vec_count),
-            parallel=2,
+            parallel=3,
             wait=True
         )
         print("Upload done")
@@ -240,12 +247,16 @@ def sparse_vector_benchmark(
     title = f"Sparse NeurIPS {dataset} ({segment_count} segments)"
     plt.hist2d(dimensions, latency, bins=100, cmap="rainbow")
     plt.grid(True)
+    # force y axis limits to be able to compare plots
+    if graph_y_limit is not None:
+        axis = plt.gca()
+        axis.set_ylim(bottom=0, top=int(graph_y_limit))
     cbar = plt.colorbar()
     cbar.set_label('Frequency')
     plt.xlabel('Query dimension count')
     plt.ylabel('Latency (ms)')
     plt.title(title)
-    plot_file_name = f"./results/neurIPS_bench_{dataset}_{timestamp}_dim_count.png"
+    plot_file_name = f"./results/sparse_bench_{dataset}_{timestamp}.png"
     print(f"Saving plot to {plot_file_name}")
     plt.savefig(plot_file_name)
     plt.close()
