@@ -193,7 +193,7 @@ def sparse_vector_benchmark(
         start = time.time_ns()
         results = client.search(
             collection_name=collection_name,
-            with_vectors=True,  # return vector for ground truth check
+            with_vectors=check_groundtruth,  # return vector for ground truth check
             with_payload=False,
             limit=search_limit,
             query_vector=NamedSparseVector(
@@ -233,13 +233,16 @@ def sparse_vector_benchmark(
     print(f"999p: {round(quantiles[3], 2)} millis")
     print(f"max: {round(quantiles[4], 2)} millis")
     print("")
-    print("Query dimensions distribution:")
-    quantiles = np.quantile(dimensions, [0.5, 0.95, 0.99, 0.999, 1])
-    print(f"50p: {quantiles[0]}")
-    print(f"95p: {quantiles[1]}")
-    print(f"99p: {quantiles[2]}")
-    print(f"999p: {quantiles[3]}")
-    print(f"max: {quantiles[4]}")
+
+    # query dimensions distribution
+    if analyze_data:
+        print("Query dimensions distribution:")
+        quantiles = np.quantile(dimensions, [0.5, 0.95, 0.99, 0.999, 1])
+        print(f"50p: {quantiles[0]}")
+        print(f"95p: {quantiles[1]}")
+        print(f"99p: {quantiles[2]}")
+        print(f"999p: {quantiles[3]}")
+        print(f"max: {quantiles[4]}")
 
     # Create a 2D histogram of the query dimensions and latencies
     # https://numpy.org/doc/stable/reference/generated/numpy.histogram2d.html
