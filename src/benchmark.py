@@ -1,5 +1,6 @@
 from qdrant_client import QdrantClient
-from qdrant_client.models import NamedSparseVector, SparseVectorParams, OptimizersConfigDiff, SparseVector
+from qdrant_client.models import (NamedSparseVector, SparseIndexParams, SparseVectorParams, OptimizersConfigDiff,
+                                  SparseVector)
 import click
 import numpy as np
 import matplotlib.pyplot as plt
@@ -69,6 +70,8 @@ def print_segment_info(host, collection_name):
 @click.option('--analyze-data', default=False, help="Whether to analyze data")
 @click.option('--check-groundtruth', default=False, help="Whether to check results against ground truth")
 @click.option('--graph-y-limit', default=None, help="Y axis limit for the graph to help compare plots")
+@click.option('--parallel-batch-upsert', default=4, help="Number of parallel batch upserts")
+@click.option('--on-disk-index', default=False, help="Whether to use on-disk index")
 def sparse_vector_benchmark(
         host,
         skip_creation,
@@ -79,7 +82,9 @@ def sparse_vector_benchmark(
         segment_number,
         analyze_data,
         check_groundtruth,
-        graph_y_limit):
+        graph_y_limit,
+        parallel_batch_upsert,
+        on_disk_index):
     """Sparse vector benchmark tool for Qdrant."""
 
     collection_name = f"neurIPS_sparse_{dataset}_bench"
@@ -147,7 +152,13 @@ def sparse_vector_benchmark(
         client.recreate_collection(
             collection_name=collection_name,
             vectors_config={},
-            sparse_vectors_config={vector_name: SparseVectorParams()},
+            sparse_vectors_config={
+                vector_name: SparseVectorParams(
+                    index=SparseIndexParams(
+                        on_disk=on_disk_index,
+                    )
+                )
+            },
             optimizers_config=OptimizersConfigDiff(default_segment_number=segment_number)
         )
 
@@ -155,7 +166,7 @@ def sparse_vector_benchmark(
         client.upload_collection(
             collection_name=collection_name,
             vectors=tqdm(insert_generator(vector_name, data), total=vec_count),
-            parallel=3,
+            parallel=parallel_batch_upsert,
             wait=True
         )
         print("Upload done")
@@ -188,41 +199,46 @@ def sparse_vector_benchmark(
     print("---------------------------------------")
     print(f"Querying {query_count} sparse vectors")
     for i in tqdm(range(0, query_count)):
-        point = query_data[i]
-        query_vector = csr_to_sparse_vector(point)
-        start = time.time_ns()
-        results = client.search(
-            collection_name=collection_name,
-            with_vectors=check_groundtruth,  # return vector for ground truth check
-            with_payload=False,
-            limit=search_limit,
-            query_vector=NamedSparseVector(
-                name=vector_name,
-                vector=query_vector
+        try:
+            point = query_data[i]
+            query_vector = csr_to_sparse_vector(point)
+            start = time.time_ns()
+            results = client.search(
+                collection_name=collection_name,
+                with_vectors=check_groundtruth,  # return vector for ground truth check
+                with_payload=False,
+                limit=search_limit,
+                query_vector=NamedSparseVector(
+                    name=vector_name,
+                    vector=query_vector
+                )
             )
-        )
-        end = time.time_ns()
-        duration_ms = (end - start) / 100_000
-        latency.append(duration_ms)
-        dim = len(query_vector.indices)
-        dimensions.append(dim)
-        if duration_ms > slow_ms:
-            print(f"Slow query with dim {dim} took {duration_ms} millis")
-        if check_groundtruth:
-            # check results against ground truth
-            ground_vector = ground_vectors[i]
-            contains = False
-            for j in range(0, len(results)):
-                result = results[j].vector[vector_name]
-                if result == ground_vector:
-                    contains = True
-                    break
-            # TODO fix ground truth check
-            if not contains:
-                print(f"Result for query {i} doesn't contain the ground truth vector")
-                print(f"Query vector: {query_vector}")
-                print(f"Ground truth vector: {ground_vector}")
-                exit(1)
+            end = time.time_ns()
+            duration_ms = (end - start) / 100_000
+            latency.append(duration_ms)
+            dim = len(query_vector.indices)
+            dimensions.append(dim)
+            if duration_ms > slow_ms:
+                print(f"Slow query with dim {dim} took {duration_ms} millis")
+            if check_groundtruth:
+                # check results against ground truth
+                ground_vector = ground_vectors[i]
+                contains = False
+                for j in range(0, len(results)):
+                    result = results[j].vector[vector_name]
+                    if result == ground_vector:
+                        contains = True
+                        break
+                # TODO fix ground truth check
+                if not contains:
+                    print(f"Result for query {i} doesn't contain the ground truth vector")
+                    print(f"Query vector: {query_vector}")
+                    print(f"Ground truth vector: {ground_vector}")
+                    exit(1)
+        except KeyboardInterrupt:
+            print("Bye - generating partial report")
+            # break the loop and generate partial report
+            break
 
     print("---------------------------------------")
     print("Latency distribution:")

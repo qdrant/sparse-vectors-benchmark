@@ -38,16 +38,22 @@ Usage: main.py [OPTIONS]
   Sparse vector benchmark tool for Qdrant.
 
 Options:
-  --host TEXT                  The host of the Qdrant server
-  --skip-creation BOOLEAN      Whether to skip collection creation
-  --dataset TEXT               Dataset to use: small, 1M, full
-  --slow-ms INTEGER            Slow query threshold in milliseconds
-  --search-limit INTEGER       Search limit
-  --data-path TEXT             Path to the data files
-  --segment-number INTEGER     Number of segments
-  --analyze-data BOOLEAN       Whether to analyze data
-  --check-groundtruth BOOLEAN  Whether to check results against ground truth
-  --help                       Show this message and exit.
+  --host TEXT                     The host of the Qdrant server
+  --skip-creation BOOLEAN         Whether to skip collection creation
+  --dataset TEXT                  Dataset to use: small, 1M, full
+  --slow-ms INTEGER               Slow query threshold in milliseconds
+  --search-limit INTEGER          Search limit
+  --data-path TEXT                Path to the data files
+  --segment-number INTEGER        Number of segments
+  --analyze-data BOOLEAN          Whether to analyze data
+  --check-groundtruth BOOLEAN     Whether to check results against ground
+                                  truth
+  --graph-y-limit TEXT            Y axis limit for the graph to help compare
+                                  plots
+  --parallel-batch-upsert INTEGER
+                                  Number of parallel batch upserts
+  --on-disk-index BOOLEAN         Whether to use on-disk index
+  --help                          Show this message and exit.
 ```
 
 e.g. to create a collection from the `small` dataset:
