@@ -66,7 +66,6 @@ python main.py --skip-creation false --dataset small
 
 The results are stored in the `results` folder.
 
-
-- 2D histogram of Latency per dimension count: ![results](./neurIPS_bench_example.png)
+- 2D histogram of latency per dimension count: ![results](./neurIPS_bench_example.png)
 
 - Histogram of data posting length distribution: ![results](./neurIPS_posting_len_example.png)

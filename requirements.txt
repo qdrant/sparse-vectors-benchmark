@@ -1,4 +1,4 @@
-qdrant-client==1.7.0
+qdrant-client==1.7.0 # Can't bump to 1.7.1 because of https://github.com/qdrant/qdrant-client/issues/459
 scipy==1.11.4
 numpy==1.26.3
 tqdm==4.66.1

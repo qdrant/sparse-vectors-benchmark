@@ -70,7 +70,7 @@ def print_segment_info(host, collection_name):
 @click.option('--analyze-data', default=False, help="Whether to analyze data")
 @click.option('--check-groundtruth', default=False, help="Whether to check results against ground truth")
 @click.option('--graph-y-limit', default=None, help="Y axis limit for the graph to help compare plots")
-@click.option('--parallel-batch-upsert', default=4, help="Number of parallel batch upserts")
+@click.option('--parallel-batch-upsert', default=5, help="Number of parallel batch upserts")
 @click.option('--on-disk-index', default=False, help="Whether to use on-disk index")
 def sparse_vector_benchmark(
         host,
