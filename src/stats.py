@@ -25,3 +25,8 @@ def compute_dataset_stats(csr_matrix) -> DatasetStats:
         count_per_posting_length[count] += 1
     stats = DatasetStats(posting_len_per_dimension, count_per_posting_length)
     return stats
+
+
+def compare_floats_percentage(a, b, tolerance_percentage):
+    tolerance = abs(a * tolerance_percentage / 100)
+    return abs(a - b) <= tolerance

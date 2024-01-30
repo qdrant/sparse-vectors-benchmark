@@ -1,6 +1,6 @@
 from qdrant_client import QdrantClient
 from qdrant_client.models import (NamedSparseVector, SparseIndexParams, SparseVectorParams, OptimizersConfigDiff,
-                                  SparseVector)
+                                  Record, SparseVector)
 import click
 import numpy as np
 import matplotlib.pyplot as plt
@@ -9,7 +9,7 @@ import time
 from tqdm import tqdm
 
 from src.sparse_matrix import read_sparse_matrix, knn_result_read
-from src.stats import compute_dataset_stats
+from src.stats import compute_dataset_stats, compare_floats_percentage
 
 
 def csr_to_sparse_vector(point_csr) -> SparseVector:
@@ -24,7 +24,8 @@ def insert_generator(vector_name, csr_matrix):
         point = csr_matrix[i]
         vector = csr_to_sparse_vector(point)
         entry = {vector_name: vector}
-        yield entry
+        record = Record(id=i, vector=entry)
+        yield record
 
 
 def longest_posting_list_for_vector(sparse_vector, stats):
@@ -107,22 +108,16 @@ def sparse_vector_benchmark(
         print(f"Unknown dataset {dataset}")
         exit(1)
 
-    ground_vectors = []
+    gt_indices = []
+    gt_scores = []
     if check_groundtruth:
         # https://github.com/harsha-simhadri/big-ann-benchmarks/blob/main/dataset_preparation/make_sparse_groundtruth.py
-        ground = knn_result_read(gt_file_name)
-        print(f"Ground truth contains {ground[0].shape[0]} vectors")
-        for i in range(0, ground[0].shape[0]):
-            indices = ground[0][i]
-            values = ground[1][i]
-            assert len(indices) == len(values)
-            # sort by index
-            sorted_indices = np.argsort(indices)
-            sparse_vector = SparseVector(
-                indices=indices[sorted_indices],
-                values=values[sorted_indices]
-            )
-            ground_vectors.append(sparse_vector)
+        gt_indices, gt_scores = knn_result_read(gt_file_name)
+        assert len(gt_indices) == len(gt_scores)
+        gt_len = len(gt_indices)
+        top_len = len(gt_indices[0])
+        assert top_len == len(gt_scores[0])
+        print(f"Ground truth contains {gt_len} entries for top {top_len} vectors")
 
     data = {}
     vec_count = 0
@@ -170,9 +165,9 @@ def sparse_vector_benchmark(
         )
 
         print(f"Uploading {vec_count} sparse vectors into '{collection_name}'")
-        client.upload_collection(
+        client.upload_records(
             collection_name=collection_name,
-            vectors=tqdm(insert_generator(vector_name, data), total=vec_count),
+            records=tqdm(insert_generator(vector_name, data), total=vec_count),
             parallel=parallel_batch_upsert,
             wait=True
         )
@@ -212,7 +207,7 @@ def sparse_vector_benchmark(
             start = time.time_ns()
             results = client.search(
                 collection_name=collection_name,
-                with_vectors=check_groundtruth,  # return vector for ground truth check
+                with_vectors=False,
                 with_payload=False,
                 limit=search_limit,
                 query_vector=NamedSparseVector(
@@ -228,20 +223,20 @@ def sparse_vector_benchmark(
             if duration_ms > slow_ms:
                 print(f"Slow query with dim {dim} took {duration_ms} millis")
             if check_groundtruth:
-                # check results against ground truth
-                ground_vector = ground_vectors[i]
-                contains = False
+                expected_scores = gt_scores[i]
+                expected_ids = gt_indices[i]
+                # check each result against ground truth
                 for j in range(0, len(results)):
-                    result = results[j].vector[vector_name]
-                    if result == ground_vector:
-                        contains = True
-                        break
-                # TODO fix ground truth check
-                if not contains:
-                    print(f"Results for query {i} doesn't contain the expected groundtruth vector")
-                    print(f"Query: {query_vector}")
-                    print(f"Ground truth: {ground_vector}")
-                    exit(1)
+                    result = results[j]
+                    result_score = result.score
+                    expected_score = float(expected_scores[j])
+                    # compare floats with 1% tolerance
+                    if not compare_floats_percentage(result_score, expected_score, 1):
+                        print(f"Ground-truth score mismatch vector:{i} result:{j}/{search_limit}: {result_score} != {expected_score}")
+                    result_id = result.id
+                    expected_id = expected_ids[j]
+                    if result_id != expected_id:
+                        print(f"Ground-truth id mismatch vector:{i} result:{j}/{search_limit}: {result_id} != {expected_id}")
         except KeyboardInterrupt:
             print("Bye - generating partial report")
             # break the loop and generate partial report
@@ -273,7 +268,7 @@ def sparse_vector_benchmark(
     title = f"Sparse NeurIPS {dataset} ({segment_count} segments)"
     plt.hist2d(dimensions, latency, bins=100, cmap="rainbow")
     plt.grid(True)
-    # force y axis limits to be able to compare plots
+    # force y-axis limits to be able to compare plots
     if graph_y_limit is not None:
         axis = plt.gca()
         axis.set_ylim(bottom=0, top=int(graph_y_limit))
