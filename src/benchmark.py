@@ -115,7 +115,14 @@ def sparse_vector_benchmark(
         for i in range(0, ground[0].shape[0]):
             indices = ground[0][i]
             values = ground[1][i]
-            ground_vectors.append(SparseVector(indices=indices, values=values))
+            assert len(indices) == len(values)
+            # sort by index
+            sorted_indices = np.argsort(indices)
+            sparse_vector = SparseVector(
+                indices=indices[sorted_indices],
+                values=values[sorted_indices]
+            )
+            ground_vectors.append(sparse_vector)
 
     data = {}
     vec_count = 0
@@ -231,9 +238,9 @@ def sparse_vector_benchmark(
                         break
                 # TODO fix ground truth check
                 if not contains:
-                    print(f"Result for query {i} doesn't contain the ground truth vector")
-                    print(f"Query vector: {query_vector}")
-                    print(f"Ground truth vector: {ground_vector}")
+                    print(f"Results for query {i} doesn't contain the expected groundtruth vector")
+                    print(f"Query: {query_vector}")
+                    print(f"Ground truth: {ground_vector}")
                     exit(1)
         except KeyboardInterrupt:
             print("Bye - generating partial report")
