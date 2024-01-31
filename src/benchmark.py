@@ -273,23 +273,25 @@ def sparse_vector_benchmark(
 
     print("---------------------------------------")
     print("Latency distribution:")
-    quantiles = np.quantile(latency, [0.5, 0.95, 0.99, 0.999, 1])
-    print(f"50p: {round(quantiles[0], 2)} millis")
-    print(f"95p: {round(quantiles[1], 2)} millis")
-    print(f"99p: {round(quantiles[2], 2)} millis")
-    print(f"999p: {round(quantiles[3], 2)} millis")
-    print(f"max: {round(quantiles[4], 2)} millis")
+    quantiles = np.quantile(latency, [0, 0.5, 0.95, 0.99, 0.999, 1])
+    print(f"min: {round(quantiles[0], 2)} millis")
+    print(f"50p: {round(quantiles[1], 2)} millis")
+    print(f"95p: {round(quantiles[2], 2)} millis")
+    print(f"99p: {round(quantiles[3], 2)} millis")
+    print(f"999p: {round(quantiles[4], 2)} millis")
+    print(f"max: {round(quantiles[5], 2)} millis")
     print("")
 
     # query dimensions distribution
     if analyze_data:
         print("Query dimensions distribution:")
-        quantiles = np.quantile(dimensions, [0.5, 0.95, 0.99, 0.999, 1])
-        print(f"50p: {quantiles[0]}")
-        print(f"95p: {quantiles[1]}")
-        print(f"99p: {quantiles[2]}")
-        print(f"999p: {quantiles[3]}")
-        print(f"max: {quantiles[4]}")
+        quantiles = np.quantile(dimensions, [0, 0.5, 0.95, 0.99, 0.999, 1])
+        print(f"min: {quantiles[0]}")
+        print(f"50p: {quantiles[1]}")
+        print(f"95p: {quantiles[2]}")
+        print(f"99p: {quantiles[3]}")
+        print(f"999p: {quantiles[4]}")
+        print(f"max: {quantiles[5]}")
 
     # Create a 2D histogram of the query dimensions and latencies
     # https://numpy.org/doc/stable/reference/generated/numpy.histogram2d.html
