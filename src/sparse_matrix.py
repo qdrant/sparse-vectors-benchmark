@@ -3,6 +3,7 @@ import os
 from scipy.sparse import csr_matrix
 import numpy as np
 
+
 # credit: code extracted from neuIPS 2023 benchmarks
 
 
@@ -47,7 +48,7 @@ def knn_result_read(fname):
     n, d = map(int, np.fromfile(fname, dtype="uint32", count=2))
     assert os.stat(fname).st_size == 8 + n * d * (4 + 4)
     f = open(fname, "rb")
-    f.seek(4+4)
-    I = np.fromfile(f, dtype="int32", count=n * d).reshape(n, d)
-    D = np.fromfile(f, dtype="float32", count=n * d).reshape(n, d)
-    return I, D
+    f.seek(4 + 4)
+    ids = np.fromfile(f, dtype="int32", count=n * d).reshape(n, d)
+    scores = np.fromfile(f, dtype="float32", count=n * d).reshape(n, d)
+    return ids, scores

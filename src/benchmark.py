@@ -10,7 +10,7 @@ import requests
 import time
 from tqdm import tqdm
 
-from src.download import download_gz_file
+from src.download import download_gz_file, download_file
 from src.sparse_matrix import read_sparse_matrix, knn_result_read
 from src.stats import compute_dataset_stats, compare_floats_percentage
 
@@ -58,7 +58,7 @@ def print_segment_info(host, collection_name):
             collection_index = i
             break
     segments = collections[collection_index]["shards"][0]["local"]["segments"]
-    print(f"Segments stats:")
+    print("Segments stats:")
     for segment in segments:
         print(f"- {segment['info']['num_points']} points")
 
@@ -86,6 +86,7 @@ def file_names_for_dataset(dataset) -> (str, str):
     else:
         print(f"Unknown dataset {dataset}")
         exit(1)
+
 
 @click.command()
 @click.option('--host', default="localhost", help="The host of the Qdrant server")
@@ -135,7 +136,7 @@ def sparse_vector_benchmark(
     gt_file_path = f"{data_path}/{gt_file_name}"
     if check_ground_truth and not os.path.isfile(gt_file_path):
         print(f"Ground truth file {gt_file_path} doesn't exist")
-        download_gz_file(data_path, gt_file_name)
+        download_file(data_path, gt_file_name)
 
     # ground truth data
     gt_indices = []
@@ -261,18 +262,18 @@ def sparse_vector_benchmark(
                     expected_score = float(expected_scores[j])
                     # compare floats with 1% tolerance
                     if not compare_floats_percentage(result_score, expected_score, 1):
-                        print(f"Ground-truth score mismatch vector:{i} result:{j}/{search_limit}: {result_score} != {expected_score}")
+                        print(f"GT score mismatch vector:{i} result:{j}/{search_limit}: {result_score} != {expected_score}")
                     result_id = result.id
                     expected_id = expected_ids[j]
                     if result_id != expected_id:
-                        print(f"Ground-truth id mismatch vector:{i} result:{j}/{search_limit}: {result_id} != {expected_id}")
+                        print(f"GT id mismatch vector:{i} result:{j}/{search_limit}: {result_id} != {expected_id}")
         except KeyboardInterrupt:
             print("Bye - generating partial report")
             # break the loop and generate partial report
             break
 
     print("---------------------------------------")
-    print("Latency distribution:")
+    print("Search latency distribution:")
     quantiles = np.quantile(latency, [0, 0.5, 0.95, 0.99, 0.999, 1])
     print(f"min: {round(quantiles[0], 2)} millis")
     print(f"50p: {round(quantiles[1], 2)} millis")
