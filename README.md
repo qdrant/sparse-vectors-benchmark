@@ -19,7 +19,7 @@ This section quotes the [big-ann-benchmarks repo](https://github.com/harsha-simh
 | `queries.dev` | queries file               | [1.8 MB](https://storage.googleapis.com/ann-challenge-sparse-vectors/csr/queries.dev.csr.gz) | 6,980     | N/A                                                                                       |
 
 
-The datasets need to be downloaded and extracted into the `data` folder.
+The datasets will be automatically downloaded and extracted into the `data` folder when running the benchmark.
 
 ## Setup project
 
@@ -46,7 +46,7 @@ Options:
   --data-path TEXT                Path to the data files
   --segment-number INTEGER        Number of segments
   --analyze-data BOOLEAN          Whether to analyze data
-  --check-groundtruth BOOLEAN     Whether to check results against ground
+  --check-ground-truth BOOLEAN    Whether to check results against ground
                                   truth
   --graph-y-limit TEXT            Y axis limit for the graph to help compare
                                   plots

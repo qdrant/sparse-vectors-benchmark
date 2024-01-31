@@ -1,6 +1,8 @@
+import os
+
 from qdrant_client import QdrantClient
 from qdrant_client.models import (NamedSparseVector, SparseIndexParams, SparseVectorParams, OptimizersConfigDiff,
-                                  Record, SparseVector)
+                                  PointStruct, SparseVector)
 import click
 import numpy as np
 import matplotlib.pyplot as plt
@@ -8,6 +10,7 @@ import requests
 import time
 from tqdm import tqdm
 
+from src.download import download_gz_file
 from src.sparse_matrix import read_sparse_matrix, knn_result_read
 from src.stats import compute_dataset_stats, compare_floats_percentage
 
@@ -22,10 +25,10 @@ def insert_generator(vector_name, csr_matrix):
     vec_count = csr_matrix.shape[0]
     for i in range(0, vec_count):
         point = csr_matrix[i]
-        vector = csr_to_sparse_vector(point)
-        entry = {vector_name: vector}
-        record = Record(id=i, vector=entry)
-        yield record
+        sparse_vector = csr_to_sparse_vector(point)
+        vector = {vector_name: sparse_vector}
+        point_struct = PointStruct(id=i, vector=vector)
+        yield point_struct
 
 
 def longest_posting_list_for_vector(sparse_vector, stats):
@@ -60,6 +63,30 @@ def print_segment_info(host, collection_name):
         print(f"- {segment['info']['num_points']} points")
 
 
+# query data files
+QUERY_DATA_FILE_NAME = "queries.dev.csr"
+# small dataset
+SMALL_DATA_FILE_NAME = "base_small.csr"
+SMALL_GT_FILE_NAME = "base_small.dev.gt"
+# 1M dataset
+M1_DATA_FILE_NAME = "base_1M.csr"
+M1_GT_FILE_NAME = "base_1M.dev.gt"
+# full dataset
+FULL_DATA_FILE_NAME = "base_full.csr"
+FULL_GT_FILE_NAME = "base_full.dev.gt"
+
+
+def file_names_for_dataset(dataset) -> (str, str):
+    if dataset == "small":
+        return SMALL_DATA_FILE_NAME, SMALL_GT_FILE_NAME
+    elif dataset == "1M":
+        return M1_DATA_FILE_NAME, M1_GT_FILE_NAME
+    elif dataset == "full":
+        return FULL_DATA_FILE_NAME, FULL_GT_FILE_NAME
+    else:
+        print(f"Unknown dataset {dataset}")
+        exit(1)
+
 @click.command()
 @click.option('--host', default="localhost", help="The host of the Qdrant server")
 @click.option('--skip-creation', default=True, help="Whether to skip collection creation")
@@ -69,7 +96,7 @@ def print_segment_info(host, collection_name):
 @click.option('--data-path', default="./data", help="Path to the data files")
 @click.option('--segment-number', default=8, help="Number of segments")
 @click.option('--analyze-data', default=False, help="Whether to analyze data")
-@click.option('--check-groundtruth', default=False, help="Whether to check results against ground truth")
+@click.option('--check-ground-truth', default=False, help="Whether to check results against ground truth")
 @click.option('--graph-y-limit', default=None, help="Y axis limit for the graph to help compare plots")
 @click.option('--parallel-batch-upsert', default=5, help="Number of parallel batch upserts")
 @click.option('--on-disk-index', default=False, help="Whether to use on-disk index")
@@ -82,7 +109,7 @@ def sparse_vector_benchmark(
         data_path,
         segment_number,
         analyze_data,
-        check_groundtruth,
+        check_ground_truth,
         graph_y_limit,
         parallel_batch_upsert,
         on_disk_index):
@@ -91,28 +118,31 @@ def sparse_vector_benchmark(
     collection_name = f"neurIPS_sparse_{dataset}_bench"
     vector_name = "neurIPS"
 
-    # TODO download gzip dataset from server if the file doesn't exist
-    if dataset == "small":
-        # 100k vectors
-        data_file_name = f"{data_path}/base_small.csr"
-        gt_file_name = f"{data_path}/base_small.dev.gt"
-    elif dataset == "1M":
-        # 1M vectors
-        data_file_name = f"{data_path}/base_1M.csr"
-        gt_file_name = f"{data_path}/base_1M.dev.gt"
-    elif dataset == "full":
-        # 10M vectors
-        data_file_name = f"{data_path}/base_full.csr"
-        gt_file_name = f"{data_path}/base_full.dev.gt"
-    else:
-        print(f"Unknown dataset {dataset}")
-        exit(1)
+    # pick dataset
+    data_file_name, gt_file_name = file_names_for_dataset(dataset)
 
+    # check if files exist
+    query_data_file_path = f"{data_path}/{QUERY_DATA_FILE_NAME}"
+    if not os.path.isfile(query_data_file_path):
+        print(f"Query data file {query_data_file_path} doesn't exist")
+        download_gz_file(data_path, QUERY_DATA_FILE_NAME)
+
+    data_file_path = f"{data_path}/{data_file_name}"
+    if not os.path.isfile(data_file_path):
+        print(f"Data file {data_file_path} doesn't exist")
+        download_gz_file(data_path, data_file_name)
+
+    gt_file_path = f"{data_path}/{gt_file_name}"
+    if check_ground_truth and not os.path.isfile(gt_file_path):
+        print(f"Ground truth file {gt_file_path} doesn't exist")
+        download_gz_file(data_path, gt_file_name)
+
+    # ground truth data
     gt_indices = []
     gt_scores = []
-    if check_groundtruth:
+    if check_ground_truth:
         # https://github.com/harsha-simhadri/big-ann-benchmarks/blob/main/dataset_preparation/make_sparse_groundtruth.py
-        gt_indices, gt_scores = knn_result_read(gt_file_name)
+        gt_indices, gt_scores = knn_result_read(gt_file_path)
         assert len(gt_indices) == len(gt_scores)
         gt_len = len(gt_indices)
         top_len = len(gt_indices[0])
@@ -123,8 +153,8 @@ def sparse_vector_benchmark(
     vec_count = 0
 
     if analyze_data or not skip_creation:
-        print(f"Reading {data_file_name} ...")
-        data = read_sparse_matrix(data_file_name)
+        print(f"Reading {data_file_path} ...")
+        data = read_sparse_matrix(data_file_path)
         vec_count = data.shape[0]
 
     # data analyze behind flag as it can be expensive
@@ -165,9 +195,9 @@ def sparse_vector_benchmark(
         )
 
         print(f"Uploading {vec_count} sparse vectors into '{collection_name}'")
-        client.upload_records(
+        client.upload_points(
             collection_name=collection_name,
-            records=tqdm(insert_generator(vector_name, data), total=vec_count),
+            points=tqdm(insert_generator(vector_name, data), total=vec_count),
             parallel=parallel_batch_upsert,
             wait=True
         )
@@ -192,8 +222,7 @@ def sparse_vector_benchmark(
     print_segment_info(host, collection_name)
 
     # read queries
-    query_data_file_name = f"{data_path}/queries.dev.csr"
-    query_data = read_sparse_matrix(query_data_file_name)
+    query_data = read_sparse_matrix(query_data_file_path)
     query_count = query_data.shape[0]
     # data for plotting
     latency = []
@@ -222,7 +251,7 @@ def sparse_vector_benchmark(
             dimensions.append(dim)
             if duration_ms > slow_ms:
                 print(f"Slow query with dim {dim} took {duration_ms} millis")
-            if check_groundtruth:
+            if check_ground_truth:
                 expected_scores = gt_scores[i]
                 expected_ids = gt_indices[i]
                 # check each result against ground truth
