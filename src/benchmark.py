@@ -95,6 +95,7 @@ def file_names_for_dataset(dataset) -> (str, str):
 @click.option('--slow-ms', default=500, help="Slow query threshold in milliseconds")
 @click.option('--search-limit', default=10, help="Search limit")
 @click.option('--data-path', default="./data", help="Path to the data files")
+@click.option('--results-path', default="./results", help="Path to the results files")
 @click.option('--segment-number', default=8, help="Number of segments")
 @click.option('--analyze-data', default=False, help="Whether to analyze data")
 @click.option('--check-ground-truth', default=False, help="Whether to check results against ground truth")
@@ -108,6 +109,7 @@ def sparse_vector_benchmark(
         slow_ms,
         search_limit,
         data_path,
+        results_path,
         segment_number,
         analyze_data,
         check_ground_truth,
@@ -115,6 +117,10 @@ def sparse_vector_benchmark(
         parallel_batch_upsert,
         on_disk_index):
     """Sparse vector benchmark tool for Qdrant."""
+
+    # Make sure working folders exist
+    os.makedirs(data_path, exist_ok=True)
+    os.makedirs(results_path, exist_ok=True)
 
     collection_name = f"neurIPS_sparse_{dataset}_bench"
     vector_name = "neurIPS"

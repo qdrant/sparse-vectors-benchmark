@@ -44,6 +44,7 @@ Options:
   --slow-ms INTEGER               Slow query threshold in milliseconds
   --search-limit INTEGER          Search limit
   --data-path TEXT                Path to the data files
+  --results-path TEXT             Path to the results files
   --segment-number INTEGER        Number of segments
   --analyze-data BOOLEAN          Whether to analyze data
   --check-ground-truth BOOLEAN    Whether to check results against ground
