@@ -1,4 +1,4 @@
-qdrant-client==1.7.2
+qdrant-client @ git+https://github.com/qdrant/qdrant-client.git@645e8bc3d6e01f4e3a886957b38351a91598a12b
 scipy==1.12.0
 numpy==1.26.3
 tqdm==4.66.1
