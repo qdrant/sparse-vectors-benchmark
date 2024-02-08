@@ -49,7 +49,7 @@ Options:
   --analyze-data BOOLEAN          Whether to analyze data
   --check-ground-truth BOOLEAN    Whether to check results against ground
                                   truth
-  --graph-y-limit TEXT            Y axis limit for the graph to help compare
+  --graph-y-range TEXT            Y axis range for the graph to help compare
                                   plots
   --parallel-batch-upsert INTEGER
                                   Number of parallel batch upserts

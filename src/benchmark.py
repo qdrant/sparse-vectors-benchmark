@@ -99,7 +99,7 @@ def file_names_for_dataset(dataset) -> (str, str):
 @click.option('--segment-number', default=8, help="Number of segments")
 @click.option('--analyze-data', default=False, help="Whether to analyze data")
 @click.option('--check-ground-truth', default=False, help="Whether to check results against ground truth")
-@click.option('--graph-y-limit', default=None, help="Y axis limit for the graph to help compare plots")
+@click.option('--graph-y-range', default=None, help="Y axis range for the graph to help compare plots")
 @click.option('--parallel-batch-upsert', default=5, help="Number of parallel batch upserts")
 @click.option('--on-disk-index', default=False, help="Whether to use on-disk index")
 def sparse_vector_benchmark(
@@ -113,7 +113,7 @@ def sparse_vector_benchmark(
         segment_number,
         analyze_data,
         check_ground_truth,
-        graph_y_limit,
+        graph_y_range,
         parallel_batch_upsert,
         on_disk_index):
     """Sparse vector benchmark tool for Qdrant."""
@@ -307,9 +307,12 @@ def sparse_vector_benchmark(
     plt.hist2d(dimensions, latency, bins=100, cmap="rainbow")
     plt.grid(True)
     # force y-axis limits to be able to compare plots
-    if graph_y_limit is not None:
+    if graph_y_range is not None:
         axis = plt.gca()
-        axis.set_ylim(bottom=0, top=int(graph_y_limit))
+        split = graph_y_range.split(" ")
+        bottom = int(split[0])
+        top = int(split[1])
+        axis.set_ylim(bottom=bottom, top=top)
     cbar = plt.colorbar()
     cbar.set_label('Frequency')
     plt.xlabel('Query dimension count')
