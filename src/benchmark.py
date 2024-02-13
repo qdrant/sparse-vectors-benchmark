@@ -187,6 +187,7 @@ def sparse_vector_benchmark(
 
     # gRPC client
     client = QdrantClient(host=host, prefer_grpc=True)
+    indexing_start = time.time_ns()
     if not skip_creation:
         client.recreate_collection(
             collection_name=collection_name,
@@ -219,6 +220,11 @@ def sparse_vector_benchmark(
         print(f"Waiting for collection {collection_name} to index...")
         time.sleep(2)
         info = client.get_collection(collection_name=collection_name)
+        print(f"Collection status: {info.status}")
+
+    indexing_end = time.time_ns()
+    indexing_duration_ms = (indexing_end - indexing_start) / 100_000
+    print(f"Upload & indexing took {indexing_duration_ms} millis")
 
     # collection stats
     print("Collection is ready for querying:")
