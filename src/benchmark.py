@@ -223,7 +223,7 @@ def sparse_vector_benchmark(
         print(f"Collection status: {info.status}")
 
     indexing_end = time.time_ns()
-    indexing_duration_sec = round((indexing_end - indexing_start) / 100_000_000, 2)
+    indexing_duration_sec = round((indexing_end - indexing_start) / 1_000_000_000, 2)
     print(f"Upload & indexing took {indexing_duration_sec} seconds")
 
     # collection stats
