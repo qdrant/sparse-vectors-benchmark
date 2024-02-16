@@ -223,7 +223,10 @@ def sparse_vector_benchmark(
         print(f"Waiting for collection {collection_name} to index...")
         time.sleep(2)
         info = client.get_collection(collection_name=collection_name)
-        print(f"Collection status: {info.status}")
+        if info.status == "red":
+            print(f"Collection {collection_name} indexing failed")
+            print(info.optimizer_status)
+            exit(1)
 
     indexing_end = time.time_ns()
     indexing_duration_sec = round((indexing_end - indexing_start) / 1_000_000_000, 2)
