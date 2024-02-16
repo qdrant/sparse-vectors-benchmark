@@ -100,7 +100,8 @@ def file_names_for_dataset(dataset) -> (str, str):
 @click.option('--analyze-data', default=False, help="Whether to analyze data")
 @click.option('--check-ground-truth', default=False, help="Whether to check results against ground truth")
 @click.option('--graph-y-range', default=None, help="Y axis range for the graph to help compare plots")
-@click.option('--parallel-batch-upsert', default=5, help="Number of parallel batch upserts")
+@click.option('--upsert-batch-size', default=512, help="Number of vectors per batch upserts")
+@click.option('--parallel-batch-upsert', default=16, help="Number of parallel batch upserts")
 @click.option('--on-disk-index', default=False, help="Whether to use on-disk index")
 def sparse_vector_benchmark(
         host,
@@ -114,6 +115,7 @@ def sparse_vector_benchmark(
         analyze_data,
         check_ground_truth,
         graph_y_range,
+        upsert_batch_size,
         parallel_batch_upsert,
         on_disk_index):
     """Sparse vector benchmark tool for Qdrant."""
@@ -207,6 +209,7 @@ def sparse_vector_benchmark(
             collection_name=collection_name,
             points=tqdm(insert_generator(vector_name, data), total=vec_count),
             parallel=parallel_batch_upsert,
+            batch_size=upsert_batch_size,
             wait=True
         )
         print("Upload done")

@@ -51,6 +51,7 @@ Options:
                                   truth
   --graph-y-range TEXT            Y axis range for the graph to help compare
                                   plots
+  --upsert-batch-size INTEGER     Number of vectors per batch upserts
   --parallel-batch-upsert INTEGER
                                   Number of parallel batch upserts
   --on-disk-index BOOLEAN         Whether to use on-disk index
