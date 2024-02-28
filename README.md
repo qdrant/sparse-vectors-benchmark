@@ -66,8 +66,19 @@ python main.py --skip-creation false --dataset small
     
 ## Results
 
-The results are stored in the `results` folder.
+The results are printed in the console and additional plots are stored in the `results` folder.
 
-- 2D histogram of latency per dimension count: ![results](./neurIPS_bench_example.png)
+#### 2D histogram of latency per dimension count
 
-- Histogram of data posting length distribution: ![results](./neurIPS_posting_len_example.png)
+e.g. for the `full` dataset with Azure instances with separated client from server
+
+- server `Standard D8ds v5 (8 vcpus, 32 GiB memory)`
+- client `Standard D4s v3 (4 vcpus, 16 GiB memory)`
+
+![results](./neurIPS_bench_example.png)
+
+#### Histogram of data posting length distribution
+
+Shows the distribution of the number of non-zero elements in the sparse vectors for the `small` dataset.
+
+![results](./neurIPS_posting_len_example.png)
