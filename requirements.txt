@@ -1,7 +1,7 @@
-qdrant-client==1.8.2
-scipy==1.13.0
-numpy==1.26.4
-tqdm==4.66.2
+qdrant-client==1.10.1
+scipy==1.14.0
+numpy==2.0.1
+tqdm==4.66.4
 click==8.1.7
-matplotlib==3.8.4
-requests==2.31.0
+matplotlib==3.9.1
+requests==2.32.3
