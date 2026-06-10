@@ -4,4 +4,4 @@ numpy==2.1.2
 tqdm==4.66.5
 click==8.1.7
 matplotlib==3.9.2
-requests==2.32.3
+requests==2.33.0
